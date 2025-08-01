@@ -1,0 +1,10 @@
+{
+  "domain": "waterlink_solutions_pro",
+  "name": "WaterLink Solutions Pro",
+  "version": "1.0.0",
+  "documentation": "https://github.com/aweddell/ha-waterlink-solutions-pro",
+  "dependencies": [],
+  "codeowners": ["@aweddell"],
+  "config_flow": true,
+  "requirements": ["aiohttp"]
+}
