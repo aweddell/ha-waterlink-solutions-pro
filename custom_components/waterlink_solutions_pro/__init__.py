@@ -1,11 +1,20 @@
+import logging
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
 from .const import DOMAIN
 from .api import WaterLinkAPI
 from .coordinator import WaterLinkDataCoordinator
-import logging
 
 _LOGGER = logging.getLogger(__name__)
+PLATFORMS = ["sensor"]
 
-async def async_setup_entry(hass, entry):
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the integration (empty for config entry-based)."""
+    return True
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up WaterLink Solutions Pro from a config entry."""
     _LOGGER.debug("Setting up WaterLink Solutions Pro integration")
     api = WaterLinkAPI(
         entry.data["username"],
@@ -18,11 +27,12 @@ async def async_setup_entry(hass, entry):
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
-async def async_unload_entry(hass, entry):
-    await hass.config_entries.async_unload_platforms(entry, ["sensor"])
-    hass.data[DOMAIN].pop(entry.entry_id)
-    return True
-
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        hass.data[DOMAIN].pop(entry.entry_id)
+    return unloaded

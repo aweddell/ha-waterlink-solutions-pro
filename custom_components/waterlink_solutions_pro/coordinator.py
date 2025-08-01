@@ -23,9 +23,13 @@ class WaterLinkDataCoordinator(DataUpdateCoordinator):
 
             data = {}
             for entry in results.get("members", []):
+                site_name = entry.get("testedSiteName", "WaterLink Site")
+                test_time = entry.get("waterTestDate")
                 for m in entry.get("measurements", []):
                     fid = m["testFactorId"]
                     name = factor_map.get(fid, {}).get("name", f"Factor {fid}")
+                    m["_site_name"] = site_name
+                    m["_test_time"] = test_time
                     data[name] = m
             return data
         except Exception as err:
