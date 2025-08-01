@@ -27,6 +27,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
+    # Register manual refresh service
+    async def handle_manual_refresh(call):
+        await coordinator.async_request_refresh()
+
+    hass.services.async_register(
+        DOMAIN, "refresh", handle_manual_refresh
+    )
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
