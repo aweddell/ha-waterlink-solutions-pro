@@ -38,3 +38,33 @@ class WaterLinkAPI:
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.post(f"{API_BASE}/treatment-reports/grid-view/search", json=payload) as resp:
                 return await resp.json()
+
+    async def get_sites(self):
+        headers = await self._get_headers()
+        offset = 0
+        limit = 25
+        sites = []
+
+        async with aiohttp.ClientSession(headers=headers) as session:
+            while True:
+                url = f"{API_BASE}/sites?offset={offset}&limit={limit}"
+                async with session.get(url) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
+                    page = data.get("data", [])
+                    sites.extend(page)
+
+                    total = data.get("totalRecords", len(page))
+                    offset += limit
+                    if offset >= total:
+                        break
+
+        return sites
+
+    async def get_site_info(self, site_id):
+        headers = await self._get_headers()
+        url = f"{API_BASE}/sites/{site_id}"
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                return await resp.json()

@@ -19,15 +19,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
     site_ids = entry.data[CONF_SITE_ID]
+    _LOGGER.debug("Using credentials for user: %s", username)
+    _LOGGER.debug("Configured site IDs: %s", site_ids)
+
     if isinstance(site_ids, str):
         site_ids = [site_ids]  # backward compatibility
 
+    name_tracker = {}
     coordinators = {}
     for site_id in site_ids:
-        api = WaterLinkAPI(username, password, site_id)
-        coordinator = WaterLinkDataCoordinator(hass, api, site_id)
-        await coordinator.async_config_entry_first_refresh()
-        coordinators[site_id] = coordinator
+        try:
+            _LOGGER.debug("Setting up site ID: %s", site_id)
+            api = WaterLinkAPI(username, password, site_id)
+            await api.authenticate()
+            _LOGGER.debug("Authenticated successfully for site ID: %s", site_id)
+            site_info = await api.get_site_info(site_id)
+            _LOGGER.debug("Site info for %s: %s", site_id, site_info)
+            site_name = site_info.get("name", site_id)
+
+            base_name = slugify(site_name)
+            count = name_tracker.get(base_name, 0)
+            name_tracker[base_name] = count + 1
+            if count > 0:
+                site_name = f"{site_name} ({count + 1})"
+
+            coordinator = WaterLinkDataCoordinator(hass, api)
+            coordinator.site_name = site_name
+            await coordinator.async_config_entry_first_refresh()
+            coordinators[site_id] = coordinator
+        except Exception as e:
+            _LOGGER.exception("Failed to set up site %s: %s", site_id, e)
+
+    if not coordinators:
+        _LOGGER.error("No coordinators could be initialized. Aborting setup.")
+        return False
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinators
 
@@ -48,3 +73,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unloaded
 
+
+def slugify(value):
+    return "".join(
+        c if c.isalnum() else "_" for c in value.lower().strip()
+    )
